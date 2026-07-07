@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walking calorie ledger — gross &amp; net</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #17263d;
+    --ink-soft: #52627c;
+    --ink-faint: #8b98ad;
+    --paper: #fbfcfd;
+    --grid: rgba(62, 108, 158, 0.10);
+    --line: #d4dce6;
+    --line-strong: #a9b8ca;
+    --baseline: #3e6c9e;
+    --baseline-soft: #dfe9f3;
+    --net: #e2571e;
+    --net-soft: #fdeee6;
+    --ok: #2e7d4f;
+    --warn: #a05a00;
+    --warn-soft: #fdf3e3;
+    --radius: 10px;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "Space Grotesk", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--paper);
+    background-size: 28px 28px, 28px 28px, auto;
+    min-height: 100vh;
+    padding: 32px 20px 64px;
+  }
+  .sheet { max-width: 880px; margin: 0 auto; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+  .masthead .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--net); font-weight: 600;
+  }
+  .masthead h1 { font-size: clamp(26px, 4.5vw, 36px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
+  .masthead p { color: var(--ink-soft); margin-top: 8px; font-size: 15px; max-width: 46ch; }
+
+  .units { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; background: #fff; }
+  .units button {
+    font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+    padding: 8px 16px; border: none; background: transparent; color: var(--ink-soft); cursor: pointer;
+  }
+  .units button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .units button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .panel h2 {
+    font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 16px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  label { font-size: 14px; font-weight: 500; }
+  .unit-tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  .chip {
+    font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--baseline); background: var(--baseline-soft);
+    border-radius: 4px; padding: 2px 7px; visibility: hidden;
+  }
+  .field.derived .chip { visibility: visible; }
+  input[type="number"] {
+    width: 100%; font-family: var(--mono); font-size: 17px; font-weight: 500;
+    color: var(--ink); background: #fff; border: 1px solid var(--line-strong);
+    border-radius: 7px; padding: 10px 12px; appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
+  .field.derived input { border-style: dashed; color: var(--baseline); background: #fafcfe; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hint { font-size: 12px; color: var(--ink-faint); margin-top: 6px; line-height: 1.45; }
+  .divider { border: none; border-top: 1px dashed var(--line); margin: 20px 0; }
+  .optional-tag { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .handset { display: flex; border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; background: #fff; }
+  .handset button {
+    flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500;
+    padding: 9px 4px; border: none; border-right: 1px solid var(--line);
+    background: transparent; color: var(--ink-soft); cursor: pointer;
+  }
+  .handset button:last-child { border-right: none; }
+  .handset button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .handset button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
+
+  .notice {
+    display: none; font-size: 13px; line-height: 1.5; color: var(--warn);
+    background: var(--warn-soft); border: 1px solid #eeddb8; border-radius: 7px;
+    padding: 10px 12px; margin-top: 14px;
+  }
+  .notice.show { display: block; }
+
+  .results .placeholder { color: var(--ink-faint); font-size: 14px; line-height: 1.6; padding: 8px 0 4px; }
+  .results-body { display: none; }
+  .results.ready .results-body { display: block; }
+  .results.ready .placeholder { display: none; }
+
+  .hero-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .hero-num .value { font-family: var(--mono); font-size: clamp(40px, 7vw, 54px); font-weight: 600; color: var(--net); letter-spacing: -0.03em; line-height: 1; }
+  .hero-num .label { font-size: 14px; color: var(--ink-soft); font-weight: 500; }
+  .hero-sub { font-size: 13px; color: var(--ink-faint); margin-top: 6px; }
+
+  .ledger { margin: 22px 0 8px; }
+  .ledger-bar { display: flex; height: 40px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line-strong); }
+  .seg-base { background: var(--baseline-soft); border-right: 1px solid var(--line-strong); position: relative; transition: width 0.35s ease; }
+  .seg-net { background: var(--net-soft); position: relative; transition: width 0.35s ease; }
+  .seg-net::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(226,87,30,0.14) 6px 8px); }
+  @media (prefers-reduced-motion: reduce) { .seg-base, .seg-net { transition: none; } }
+  .ledger-legend { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
+  .ledger-legend .item { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--line-strong); flex: none; }
+  .swatch.base { background: var(--baseline-soft); }
+  .swatch.netc { background: var(--net-soft); }
+  .ledger-legend b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin-top: 18px; }
+  .stat { background: #fff; padding: 12px 14px; }
+  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+  .stat .v { font-family: var(--mono); font-size: 17px; font-weight: 600; margin-top: 4px; }
+  .stat .v small { font-size: 12px; font-weight: 400; color: var(--ink-faint); }
+
+  .maintenance { display: none; margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); background: #f4f8f3; border: 1px solid #d6e5d4; border-radius: 7px; padding: 12px 14px; }
+  .maintenance.show { display: block; }
+  .maintenance b { font-family: var(--mono); color: var(--ok); font-weight: 600; }
+
+  footer { margin-top: 26px; font-size: 12px; line-height: 1.7; color: var(--ink-faint); max-width: 72ch; }
+  footer a { color: var(--baseline); }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <div class="masthead">
+      <div class="eyebrow">Net-honest edition</div>
+      <h1>Walking calorie ledger</h1>
+      <p>Enter your weight, the slope, and any two of distance, time, or speed — the third fills itself in. Unlike most calculators, this one shows what you can actually add to your TDEE.</p>
+    </div>
+    <div class="units" role="group" aria-label="Unit system">
+      <button type="button" id="uImp" aria-pressed="true">lb · mi · mph</button>
+      <button type="button" id="uMet" aria-pressed="false">kg · km · km/h</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="inputs-h">
+      <h2 id="inputs-h">Inputs</h2>
+
+      <div class="field">
+        <div class="field-head"><label for="weight">Weight</label><span class="unit-tag" data-u="weight">lb</span></div>
+        <input type="number" id="weight" inputmode="decimal" min="0" step="any" value="150">
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label for="grade">Slope / grade</label><span class="unit-tag">%</span></div>
+        <input type="number" id="grade" inputmode="decimal" min="-5" max="15" step="0.5" value="0">
+        <p class="hint">Uphill positive, downhill negative. Supported range −5% to +15%.</p>
+      </div>
+
+      <hr class="divider">
+
+      <div class="field" id="f-dist">
+        <div class="field-head"><label for="dist">Distance</label><span><span class="chip">auto</span> <span class="unit-tag" data-u="dist">mi</span></span></div>
+        <input type="number" id="dist" inputmode="decimal" min="0" step="any" placeholder="—">
+      </div>
+
+      <div class="field" id="f-time">
+        <div class="field-head"><label for="timeH">Walking time</label><span><span class="chip">auto</span> <span class="unit-tag">h : min</span></span></div>
+        <div class="row2">
+          <input type="number" id="timeH" inputmode="numeric" min="0" step="1" placeholder="hrs" value="4" aria-label="Hours">
+          <input type="number" id="timeM" inputmode="numeric" min="0" max="59" step="1" placeholder="min" value="0" aria-label="Minutes">
+        </div>
+      </div>
+
+      <div class="field" id="f-speed">
+        <div class="field-head"><label for="speed">Speed</label><span><span class="chip">auto</span> <span class="unit-tag" data-u="speed">mph</span></span></div>
+        <input type="number" id="speed" inputmode="decimal" min="0" step="any" value="3">
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label id="hands-label">Hands while walking</label><span class="unit-tag" id="handsPct">no discount</span></div>
+        <div class="handset" role="group" aria-labelledby="hands-label">
+          <button type="button" data-hands="0" aria-pressed="true">Free swing</button>
+          <button type="button" data-hands="0.08">Typing at desk</button>
+          <button type="button" data-hands="0.20">Leaning on desk</button>
+        </div>
+        <p class="hint">Trims the activity portion of the burn — never the resting baseline — based on handrail-support research. Typing ≈ −8%, genuine leaning ≈ −20%.</p>
+      </div>
+
+      <hr class="divider">
+
+      <div class="field">
+        <div class="field-head"><label for="tdee">Your sedentary TDEE</label><span class="optional-tag">optional · kcal/day</span></div>
+        <input type="number" id="tdee" inputmode="numeric" min="0" step="10" placeholder="e.g. 1725">
+        <p class="hint">Used to size the resting baseline that's already counted in your day. Left blank, a standard 1-MET resting rate is used instead.</p>
+      </div>
+
+      <div class="notice" id="speedNotice"></div>
+    </section>
+
+    <section class="panel results" id="results" aria-labelledby="results-h" aria-live="polite">
+      <h2 id="results-h">The ledger</h2>
+      <p class="placeholder">Fill in weight plus any two of distance, time, and speed, and the ledger will settle itself here.</p>
+
+      <div class="results-body">
+        <div class="hero-num">
+          <span class="value" id="netVal">—</span>
+          <span class="label">kcal net — add this to your TDEE</span>
+        </div>
+        <p class="hero-sub" id="heroSub"></p>
+
+        <div class="ledger">
+          <div class="ledger-bar" aria-hidden="true">
+            <div class="seg-base" id="segBase"></div>
+            <div class="seg-net" id="segNet"></div>
+          </div>
+          <div class="ledger-legend">
+            <span class="item"><span class="swatch base"></span>already in your day · <b id="baseVal">—</b> kcal</span>
+            <span class="item"><span class="swatch netc"></span>new burn · <b id="netVal2">—</b> kcal</span>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="k">Gross burn</div><div class="v" id="grossVal">—</div></div>
+          <div class="stat"><div class="k">Net per hour</div><div class="v" id="netHr">—</div></div>
+          <div class="stat"><div class="k">Distance</div><div class="v" id="distStat">—</div></div>
+          <div class="stat"><div class="k">Steps (approx.)</div><div class="v" id="stepsStat">—</div></div>
+        </div>
+
+        <div class="maintenance" id="maint"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    For grades −5% to +5%, calories follow the cubic equations ShapeSense derived from Margaria et&nbsp;al.'s "Energy Cost of Running" data (the same equations behind Omni's walking calculator); for +6% to +15%, the ACSM walking metabolic equation. Net burn subtracts the resting calories you'd have spent anyway during the walk — your TDEE&nbsp;÷&nbsp;24 per hour if provided, otherwise a 1-MET resting rate. Gross numbers here should match Omni; the net number is the one your food log actually wants. The hands-on-desk discount trims only the activity portion (gross minus baseline), since supporting weight on a desk reduces the work of walking but can't reduce resting metabolism. Validated speed range: 0.62–4.66&nbsp;mph (1–7.5&nbsp;km/h).
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ShapeSense cubic coefficients per integer grade, -5..+5.
+  // kcal/kg/hr = a*v^3 + b*v^2 + c*v + d   (v in km/h)
+  const POLY = {
+    "-5": [0.0251, -0.2157, 0.7888, 1.2957],
+    "-4": [0.0244, -0.2079, 0.8053, 1.3281],
+    "-3": [0.0237, -0.2000, 0.8217, 1.3605],
+    "-2": [0.0230, -0.1922, 0.8382, 1.3929],
+    "-1": [0.0222, -0.1844, 0.8546, 1.4253],
+     "0": [0.0215, -0.1765, 0.8710, 1.4577],
+     "1": [0.0171, -0.1062, 0.6080, 1.8600],
+     "2": [0.0184, -0.1134, 0.6566, 1.9200],
+     "3": [0.0196, -0.1205, 0.7053, 1.9800],
+     "4": [0.0208, -0.1277, 0.7539, 2.0400],
+     "5": [0.0221, -0.1349, 0.8025, 2.1000]
+  };
+
+  function polyRate(kph, g) {
+    const c = POLY[String(g)];
+    return c[0] * kph ** 3 + c[1] * kph ** 2 + c[2] * kph + c[3];
+  }
+  function acsmRate(kph, gradePct) {
+    const mpm = kph * 1000 / 60;
+    const vo2 = 0.1 * mpm + 1.8 * mpm * (gradePct / 100) + 3.5; // ml/kg/min
+    return vo2 * 60 * 5 / 1000; // kcal/kg/hr
+  }
+  // Gross kcal per kg per hour at any supported grade.
+  function grossRate(kph, grade) {
+    if (grade <= 5) {
+      const lo = Math.max(-5, Math.floor(grade));
+      const hi = Math.min(5, Math.ceil(grade));
+      if (lo === hi) return polyRate(kph, lo);
+      const t = (grade - lo) / (hi - lo);
+      return polyRate(kph, lo) * (1 - t) + polyRate(kph, hi) * t;
+    }
+    if (grade >= 6) return acsmRate(kph, grade);
+    // Blend across the 5→6% method boundary so the output stays continuous.
+    const t = grade - 5;
+    return polyRate(kph, 5) * (1 - t) + acsmRate(kph, 6) * t;
+  }
+
+  // ---- unit + state ----
+  const MI = 1.609344;
+  let imperial = true;
+  // canonical metric state
+  const S = { wKg: 150 / 2.2046226, grade: 0, distKm: null, timeH: 4, speedKph: 3 * MI, tdee: null, hands: 0 };
+  let editQueue = ["t", "s"]; // seeded with the prefilled scenario
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    weight: $("weight"), grade: $("grade"), dist: $("dist"),
+    timeH: $("timeH"), timeM: $("timeM"), speed: $("speed"), tdee: $("tdee"),
+    fDist: $("f-dist"), fTime: $("f-time"), fSpeed: $("f-speed"),
+    results: $("results"), netVal: $("netVal"), netVal2: $("netVal2"),
+    baseVal: $("baseVal"), grossVal: $("grossVal"), netHr: $("netHr"),
+    distStat: $("distStat"), stepsStat: $("stepsStat"), heroSub: $("heroSub"),
+    segBase: $("segBase"), segNet: $("segNet"), maint: $("maint"),
+    notice: $("speedNotice"), uImp: $("uImp"), uMet: $("uMet")
+  };
+
+  const num = (input) => {
+    const v = parseFloat(input.value);
+    return Number.isFinite(v) ? v : null;
+  };
+  const fmt = (n, d = 0) => n.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: 0 });
+
+  function readTime() {
+    const h = num(el.timeH), m = num(el.timeM);
+    if (h === null && m === null) return null;
+    return (h || 0) + (m || 0) / 60;
+  }
+  function writeTime(hours) {
+    const h = Math.floor(hours + 1e-9);
+    const m = Math.round((hours - h) * 60);
+    el.timeH.value = h;
+    el.timeM.value = m;
+  }
+  function writeDist() { if (S.distKm !== null) el.dist.value = +(imperial ? S.distKm / MI : S.distKm).toFixed(2); }
+  function writeSpeed() { if (S.speedKph !== null) el.speed.value = +(imperial ? S.speedKph / MI : S.speedKph).toFixed(2); }
+
+  function markDerived() {
+    [el.fDist, el.fTime, el.fSpeed].forEach((f) => f.classList.remove("derived"));
+    if (editQueue.length < 2) return null;
+    const derived = ["d", "t", "s"].find((k) => k !== editQueue[0] && k !== editQueue[1]);
+    ({ d: el.fDist, t: el.fTime, s: el.fSpeed })[derived].classList.add("derived");
+    return derived;
+  }
+
+  function deriveTrio() {
+    const derived = markDerived();
+    if (!derived) return;
+    if (derived === "d" && S.speedKph !== null && S.timeH !== null) { S.distKm = S.speedKph * S.timeH; writeDist(); }
+    if (derived === "s" && S.distKm !== null && S.timeH !== null && S.timeH > 0) { S.speedKph = S.distKm / S.timeH; writeSpeed(); }
+    if (derived === "t" && S.distKm !== null && S.speedKph !== null && S.speedKph > 0) { S.timeH = S.distKm / S.speedKph; writeTime(S.timeH); }
+  }
+
+  function compute() {
+    deriveTrio();
+    const ready = S.wKg > 0 && S.speedKph !== null && S.speedKph > 0 && S.timeH !== null && S.timeH > 0;
+    el.results.classList.toggle("ready", !!ready);
+    if (!ready) { el.notice.classList.remove("show"); return; }
+
+    // speed validity note
+    if (S.speedKph < 1 || S.speedKph > 7.5) {
+      el.notice.textContent = "Heads up: this speed is outside the range the underlying equations were validated for (0.62–4.66 mph / 1–7.5 km/h). The numbers below are an extrapolation.";
+      el.notice.classList.add("show");
+    } else {
+      el.notice.classList.remove("show");
+    }
+
+    const gross = grossRate(S.speedKph, S.grade) * S.wKg * S.timeH;
+    const restPerHr = S.tdee && S.tdee > 0 ? S.tdee / 24 : S.wKg * 1.05; // 1 MET = 1.05 kcal/kg/hr
+    const baseline = restPerHr * S.timeH;
+    const activity = Math.max(0, gross - baseline);
+    const net = activity * (1 - S.hands); // discount trims activity only, never resting
+
+    el.netVal.textContent = fmt(net);
+    el.netVal2.textContent = fmt(net);
+    el.baseVal.textContent = fmt(baseline);
+    el.grossVal.innerHTML = fmt(gross) + " <small>kcal</small>";
+    el.netHr.innerHTML = fmt(net / S.timeH) + " <small>kcal/hr</small>";
+
+    const distMi = S.distKm !== null ? S.distKm / MI : null;
+    el.distStat.innerHTML = distMi === null ? "—"
+      : (imperial ? fmt(distMi, 1) + " <small>mi</small>" : fmt(S.distKm, 1) + " <small>km</small>");
+    el.stepsStat.innerHTML = distMi === null ? "—" : fmt(distMi * 2200) + " <small>steps</small>";
+
+    const basePct = Math.max(4, Math.min(96, (baseline / gross) * 100));
+    el.segBase.style.width = basePct + "%";
+    el.segNet.style.width = (100 - basePct) + "%";
+
+    const hrs = Math.floor(S.timeH), mins = Math.round((S.timeH - hrs) * 60);
+    const spd = imperial ? (S.speedKph / MI).toFixed(1) + " mph" : S.speedKph.toFixed(1) + " km/h";
+    const handsNote = S.hands > 0 ? `, then a −${Math.round(S.hands * 100)}% hands-on-desk trim` : "";
+    el.heroSub.textContent = `${hrs}h${mins ? " " + mins + "m" : ""} at ${spd}, ${S.grade}% grade — gross ${fmt(gross)} minus ${fmt(baseline)} you'd have burned anyway${handsNote}.`;
+
+    if (S.tdee && S.tdee > 0) {
+      el.maint.innerHTML = `Maintenance on a day like this: ${fmt(S.tdee)} TDEE + ${fmt(net)} net = <b>${fmt(S.tdee + net)} kcal</b>. Eat that to hold weight; eat less to lose.`;
+      el.maint.classList.add("show");
+    } else {
+      el.maint.classList.remove("show");
+    }
+  }
+
+  function touched(key) {
+    editQueue = [key, ...editQueue.filter((k) => k !== key)].slice(0, 3);
+  }
+
+  // ---- events ----
+  el.weight.addEventListener("input", () => {
+    const v = num(el.weight);
+    S.wKg = v === null ? 0 : (imperial ? v / 2.2046226 : v);
+    compute();
+  });
+  el.grade.addEventListener("input", () => {
+    let v = num(el.grade);
+    if (v === null) v = 0;
+    S.grade = Math.max(-5, Math.min(15, v));
+    compute();
+  });
+  el.dist.addEventListener("input", () => {
+    const v = num(el.dist);
+    S.distKm = v === null ? null : (imperial ? v * MI : v);
+    if (v !== null) touched("d");
+    compute();
+  });
+  const onTime = () => {
+    const t = readTime();
+    S.timeH = t;
+    if (t !== null) touched("t");
+    compute();
+  };
+  el.timeH.addEventListener("input", onTime);
+  el.timeM.addEventListener("input", onTime);
+  el.speed.addEventListener("input", () => {
+    const v = num(el.speed);
+    S.speedKph = v === null ? null : (imperial ? v * MI : v);
+    if (v !== null) touched("s");
+    compute();
+  });
+  el.tdee.addEventListener("input", () => { S.tdee = num(el.tdee); compute(); });
+
+  const handsBtns = document.querySelectorAll(".handset button");
+  const handsPct = document.getElementById("handsPct");
+  handsBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      S.hands = parseFloat(btn.dataset.hands);
+      handsBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      handsPct.textContent = S.hands > 0 ? "−" + Math.round(S.hands * 100) + "% discount" : "no discount";
+      compute();
+    });
+  });
+
+  function setUnits(toImperial) {
+    if (imperial === toImperial) return;
+    imperial = toImperial;
+    el.uImp.setAttribute("aria-pressed", String(imperial));
+    el.uMet.setAttribute("aria-pressed", String(!imperial));
+    document.querySelector('[data-u="weight"]').textContent = imperial ? "lb" : "kg";
+    document.querySelector('[data-u="dist"]').textContent = imperial ? "mi" : "km";
+    document.querySelector('[data-u="speed"]').textContent = imperial ? "mph" : "km/h";
+    if (S.wKg > 0) el.weight.value = +(imperial ? S.wKg * 2.2046226 : S.wKg).toFixed(1);
+    writeDist(); writeSpeed();
+    compute();
+  }
+  el.uImp.addEventListener("click", () => setUnits(true));
+  el.uMet.addEventListener("click", () => setUnits(false));
+
+  compute();
+})();
+</script>
+</body>
+</html>
