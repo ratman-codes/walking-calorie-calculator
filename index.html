@@ -131,6 +131,12 @@
   }
   input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   input[type="number"]:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
+  select {
+    width: 100%; font-family: var(--mono); font-size: 17px; font-weight: 500;
+    color: var(--ink); background: var(--input-bg); border: 1px solid var(--line-strong);
+    border-radius: 7px; padding: 10px 12px; cursor: pointer;
+  }
+  select:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
   .field.derived input { border-style: dashed; color: var(--baseline); background: var(--derived-bg); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .hint { font-size: 12px; color: var(--ink-faint); margin-top: 6px; line-height: 1.45; }
@@ -237,9 +243,39 @@
       </div>
 
       <div class="field">
-        <div class="field-head"><label for="grade">Slope / grade</label><span class="unit-tag">%</span></div>
-        <input type="number" id="grade" inputmode="decimal" min="-5" max="15" step="0.5" value="0">
-        <p class="hint">Uphill positive, downhill negative. Supported range −5% to +15%.</p>
+        <div class="field-head"><label id="sex-label">Sex</label><span class="unit-tag" id="strideTag">≈2,112 steps/mi</span></div>
+        <div class="handset" id="sexSet" role="group" aria-labelledby="sex-label">
+          <button type="button" data-sex="m" aria-pressed="true">Male</button>
+          <button type="button" data-sex="f" aria-pressed="false">Female</button>
+        </div>
+        <p class="hint">Only sets the stride estimate for the steps field (avg. 2.5 ft / 2.2 ft) — the calorie equations themselves are sex-independent.</p>
+      </div>
+
+      <div class="field">
+        <div class="field-head"><label for="grade">Slope / grade</label></div>
+        <select id="grade">
+          <option value="-5">−5% · downhill</option>
+          <option value="-4">−4% · downhill</option>
+          <option value="-3">−3% · downhill</option>
+          <option value="-2">−2% · downhill</option>
+          <option value="-1">−1% · downhill</option>
+          <option value="0" selected>0% · flat</option>
+          <option value="1">+1% · uphill</option>
+          <option value="2">+2% · uphill</option>
+          <option value="3">+3% · uphill</option>
+          <option value="4">+4% · uphill</option>
+          <option value="5">+5% · uphill</option>
+          <option value="6">+6% · uphill</option>
+          <option value="7">+7% · uphill</option>
+          <option value="8">+8% · uphill</option>
+          <option value="9">+9% · uphill</option>
+          <option value="10">+10% · uphill</option>
+          <option value="11">+11% · uphill</option>
+          <option value="12">+12% · uphill</option>
+          <option value="13">+13% · uphill</option>
+          <option value="14">+14% · uphill</option>
+          <option value="15">+15% · uphill</option>
+        </select>
       </div>
 
       <hr class="divider">
@@ -247,6 +283,11 @@
       <div class="field" id="f-dist">
         <div class="field-head"><label for="dist">Distance</label><span><span class="chip">auto</span> <span class="unit-tag" data-u="dist">mi</span></span></div>
         <input type="number" id="dist" inputmode="decimal" min="0" step="any" placeholder="—">
+      </div>
+
+      <div class="field" id="f-steps">
+        <div class="field-head"><label for="steps">Steps</label><span><span class="chip">auto</span> <span class="unit-tag">steps</span></span></div>
+        <input type="number" id="steps" inputmode="numeric" min="0" step="100" placeholder="—">
       </div>
 
       <div class="field" id="f-time">
@@ -264,7 +305,7 @@
 
       <div class="field">
         <div class="field-head"><label id="hands-label">Hands while walking</label><span class="unit-tag" id="handsPct">no discount</span></div>
-        <div class="handset" role="group" aria-labelledby="hands-label">
+        <div class="handset" id="handsSet" role="group" aria-labelledby="hands-label">
           <button type="button" data-hands="0" aria-pressed="true">Free swing</button>
           <button type="button" data-hands="0.08">Typing at desk</button>
           <button type="button" data-hands="0.20">Leaning on desk</button>
@@ -309,7 +350,7 @@
           <div class="stat"><div class="k">Gross burn</div><div class="v" id="grossVal">—</div></div>
           <div class="stat"><div class="k">Net per hour</div><div class="v" id="netHr">—</div></div>
           <div class="stat"><div class="k">Distance</div><div class="v" id="distStat">—</div></div>
-          <div class="stat"><div class="k">Steps (approx.)</div><div class="v" id="stepsStat">—</div></div>
+          <div class="stat"><div class="k">Pace</div><div class="v" id="paceStat">—</div></div>
         </div>
 
         <div class="maintenance" id="maint"></div>
@@ -390,19 +431,22 @@
 
   // ---- unit + state ----
   const MI = 1.609344;
+  // Steps per mile from average stride: 2.5 ft (male) / 2.2 ft (female).
+  const SPM = { m: 2112, f: 2400 };
   let imperial = true;
   // canonical metric state
-  const S = { wKg: 150 / 2.2046226, grade: 0, distKm: null, timeH: 4, speedKph: 3 * MI, tdee: null, hands: 0 };
+  const S = { wKg: 150 / 2.2046226, grade: 0, distKm: null, timeH: 4, speedKph: 3 * MI, tdee: null, hands: 0, sex: "m" };
   let editQueue = ["t", "s"]; // seeded with the prefilled scenario
+  let stepsDriving = false; // true while the steps field is the source of distance
 
   const $ = (id) => document.getElementById(id);
   const el = {
-    weight: $("weight"), grade: $("grade"), dist: $("dist"),
+    weight: $("weight"), grade: $("grade"), dist: $("dist"), steps: $("steps"),
     timeH: $("timeH"), timeM: $("timeM"), speed: $("speed"), tdee: $("tdee"),
-    fDist: $("f-dist"), fTime: $("f-time"), fSpeed: $("f-speed"),
+    fDist: $("f-dist"), fTime: $("f-time"), fSpeed: $("f-speed"), fSteps: $("f-steps"),
     results: $("results"), netVal: $("netVal"), netVal2: $("netVal2"),
     baseVal: $("baseVal"), grossVal: $("grossVal"), netHr: $("netHr"),
-    distStat: $("distStat"), stepsStat: $("stepsStat"), heroSub: $("heroSub"),
+    distStat: $("distStat"), paceStat: $("paceStat"), heroSub: $("heroSub"), strideTag: $("strideTag"),
     segBase: $("segBase"), segNet: $("segNet"), maint: $("maint"),
     notice: $("speedNotice"), uImp: $("uImp"), uMet: $("uMet"),
     daycomp: $("daycomp"), dcSedTotal: $("dcSedTotal"), dcSedBar: $("dcSedBar"),
@@ -441,14 +485,22 @@
 
   function deriveTrio() {
     const derived = markDerived();
-    if (!derived) return;
+    if (!derived) return null;
     if (derived === "d" && S.speedKph !== null && S.timeH !== null) { S.distKm = S.speedKph * S.timeH; writeDist(); }
     if (derived === "s" && S.distKm !== null && S.timeH !== null && S.timeH > 0) { S.speedKph = S.distKm / S.timeH; writeSpeed(); }
     if (derived === "t" && S.distKm !== null && S.speedKph !== null && S.speedKph > 0) { S.timeH = S.distKm / S.speedKph; writeTime(S.timeH); }
+    return derived;
   }
 
   function compute() {
-    deriveTrio();
+    const derived = deriveTrio();
+    if (derived === "d") stepsDriving = false; // trio took over distance
+    // steps mirrors distance (sex-based stride) unless the user is typing steps
+    if (!stepsDriving) {
+      el.steps.value = S.distKm !== null ? Math.round((S.distKm / MI) * SPM[S.sex]) : "";
+    }
+    el.fSteps.classList.toggle("derived", !stepsDriving);
+    if (stepsDriving) el.fDist.classList.add("derived");
     const ready = S.wKg > 0 && S.speedKph !== null && S.speedKph > 0 && S.timeH !== null && S.timeH > 0;
     el.results.classList.toggle("ready", !!ready);
     if (!ready) { el.notice.classList.remove("show"); el.daycomp.classList.remove("show"); return; }
@@ -476,7 +528,10 @@
     const distMi = S.distKm !== null ? S.distKm / MI : null;
     el.distStat.innerHTML = distMi === null ? "—"
       : (imperial ? fmt(distMi, 1) + " <small>mi</small>" : fmt(S.distKm, 1) + " <small>km</small>");
-    el.stepsStat.innerHTML = distMi === null ? "—" : fmt(distMi * 2200) + " <small>steps</small>";
+    const paceMin = imperial ? 60 / (S.speedKph / MI) : 60 / S.speedKph;
+    let pMin = Math.floor(paceMin), pSec = Math.round((paceMin - pMin) * 60);
+    if (pSec === 60) { pMin++; pSec = 0; }
+    el.paceStat.innerHTML = `${pMin}:${String(pSec).padStart(2, "0")} <small>min/${imperial ? "mi" : "km"}</small>`;
 
     const basePct = Math.max(4, Math.min(96, (baseline / gross) * 100));
     el.segBase.style.width = basePct + "%";
@@ -535,15 +590,22 @@
     S.wKg = v === null ? 0 : (imperial ? v / 2.2046226 : v);
     compute();
   });
-  el.grade.addEventListener("input", () => {
-    let v = num(el.grade);
-    if (v === null) v = 0;
-    S.grade = Math.max(-5, Math.min(15, v));
+  el.grade.addEventListener("change", () => {
+    S.grade = parseFloat(el.grade.value) || 0;
     compute();
   });
   el.dist.addEventListener("input", () => {
     const v = num(el.dist);
     S.distKm = v === null ? null : (imperial ? v * MI : v);
+    stepsDriving = false;
+    if (v !== null) touched("d");
+    compute();
+  });
+  el.steps.addEventListener("input", () => {
+    const v = num(el.steps);
+    stepsDriving = v !== null;
+    S.distKm = v === null ? null : (v / SPM[S.sex]) * MI;
+    el.dist.value = S.distKm === null ? "" : +(imperial ? S.distKm / MI : S.distKm).toFixed(2);
     if (v !== null) touched("d");
     compute();
   });
@@ -563,7 +625,25 @@
   });
   el.tdee.addEventListener("input", () => { S.tdee = num(el.tdee); compute(); });
 
-  const handsBtns = document.querySelectorAll(".handset button");
+  const sexBtns = document.querySelectorAll("#sexSet button");
+  sexBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      S.sex = btn.dataset.sex;
+      sexBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      el.strideTag.textContent = "≈" + SPM[S.sex].toLocaleString("en-US") + " steps/mi";
+      if (stepsDriving) {
+        // steps stay fixed; the distance they imply changes with the stride
+        const v = num(el.steps);
+        if (v !== null) {
+          S.distKm = (v / SPM[S.sex]) * MI;
+          el.dist.value = +(imperial ? S.distKm / MI : S.distKm).toFixed(2);
+        }
+      }
+      compute();
+    });
+  });
+
+  const handsBtns = document.querySelectorAll("#handsSet button");
   const handsPct = document.getElementById("handsPct");
   handsBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
