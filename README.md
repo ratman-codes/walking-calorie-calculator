@@ -1,3 +1,5 @@
+https://ratman-codes.github.io/walking-calorie-calculator/
+
 # Walking calorie ledger
 
 A single-file walking calorie calculator that reports **net** calories — the number you can actually add to your TDEE for food tracking — instead of the gross figure most calculators give you.
