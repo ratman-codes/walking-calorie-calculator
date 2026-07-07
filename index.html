@@ -4,11 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Walking calorie ledger — gross &amp; net</title>
+<script>
+  // Apply saved theme before first paint (dark is the default).
+  try { if (localStorage.getItem("wcl-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
+    /* dark theme (default) */
+    color-scheme: dark;
+    --ink: #e7ecf3;
+    --ink-soft: #a3b0c2;
+    --ink-faint: #71809a;
+    --paper: #14181f;
+    --grid: rgba(110, 150, 195, 0.06);
+    --line: #2b3442;
+    --line-strong: #435268;
+    --baseline: #7fadde;
+    --baseline-soft: #1d3d61;
+    --net: #f2662b;
+    --net-soft: #46220f;
+    --ok: #6cc492;
+    --warn: #d9a860;
+    --warn-soft: #2c2415;
+    --warn-line: #4a3d1f;
+    --ok-soft: #17251c;
+    --ok-line: #2b4a35;
+    --surface: #1b212b;
+    --input-bg: #141a22;
+    --derived-bg: #17202b;
+    --dc-other-bg: #333b46;
+    --net-stripe: rgba(242, 102, 43, 0.14);
+    --radius: 10px;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "Space Grotesk", system-ui, sans-serif;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
     --ink: #17263d;
     --ink-soft: #52627c;
     --ink-faint: #8b98ad;
@@ -23,9 +57,14 @@
     --ok: #2e7d4f;
     --warn: #a05a00;
     --warn-soft: #fdf3e3;
-    --radius: 10px;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
-    --sans: "Space Grotesk", system-ui, sans-serif;
+    --warn-line: #eeddb8;
+    --ok-soft: #f4f8f3;
+    --ok-line: #d6e5d4;
+    --surface: #ffffff;
+    --input-bg: #ffffff;
+    --derived-bg: #fafcfe;
+    --dc-other-bg: #eef1f5;
+    --net-stripe: rgba(226, 87, 30, 0.14);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
@@ -50,18 +89,25 @@
   .masthead h1 { font-size: clamp(26px, 4.5vw, 36px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
   .masthead p { color: var(--ink-soft); margin-top: 8px; font-size: 15px; max-width: 46ch; }
 
-  .units { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; background: #fff; }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .units { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; background: var(--surface); }
   .units button {
     font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
     padding: 8px 16px; border: none; background: transparent; color: var(--ink-soft); cursor: pointer;
   }
-  .units button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .units button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .units button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
+  .theme-btn {
+    font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+    padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 999px;
+    background: var(--surface); color: var(--ink-soft); cursor: pointer;
+  }
+  .theme-btn:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
 
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
   @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
 
-  .panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
   .panel h2 {
     font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--ink-faint); margin-bottom: 16px;
@@ -80,30 +126,30 @@
   .field.derived .chip { visibility: visible; }
   input[type="number"] {
     width: 100%; font-family: var(--mono); font-size: 17px; font-weight: 500;
-    color: var(--ink); background: #fff; border: 1px solid var(--line-strong);
+    color: var(--ink); background: var(--input-bg); border: 1px solid var(--line-strong);
     border-radius: 7px; padding: 10px 12px; appearance: textfield;
   }
   input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   input[type="number"]:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
-  .field.derived input { border-style: dashed; color: var(--baseline); background: #fafcfe; }
+  .field.derived input { border-style: dashed; color: var(--baseline); background: var(--derived-bg); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .hint { font-size: 12px; color: var(--ink-faint); margin-top: 6px; line-height: 1.45; }
   .divider { border: none; border-top: 1px dashed var(--line); margin: 20px 0; }
   .optional-tag { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 
-  .handset { display: flex; border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; background: #fff; }
+  .handset { display: flex; border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; background: var(--surface); }
   .handset button {
     flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500;
     padding: 9px 4px; border: none; border-right: 1px solid var(--line);
     background: transparent; color: var(--ink-soft); cursor: pointer;
   }
   .handset button:last-child { border-right: none; }
-  .handset button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .handset button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .handset button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
 
   .notice {
     display: none; font-size: 13px; line-height: 1.5; color: var(--warn);
-    background: var(--warn-soft); border: 1px solid #eeddb8; border-radius: 7px;
+    background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 7px;
     padding: 10px 12px; margin-top: 14px;
   }
   .notice.show { display: block; }
@@ -122,7 +168,7 @@
   .ledger-bar { display: flex; height: 40px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line-strong); }
   .seg-base { background: var(--baseline-soft); border-right: 1px solid var(--line-strong); position: relative; transition: width 0.35s ease; }
   .seg-net { background: var(--net-soft); position: relative; transition: width 0.35s ease; }
-  .seg-net::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(226,87,30,0.14) 6px 8px); }
+  .seg-net::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--net-stripe) 6px 8px); }
   @media (prefers-reduced-motion: reduce) { .seg-base, .seg-net { transition: none; } }
   .ledger-legend { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
   .ledger-legend .item { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
@@ -132,14 +178,32 @@
   .ledger-legend b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
 
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin-top: 18px; }
-  .stat { background: #fff; padding: 12px 14px; }
+  .stat { background: var(--surface); padding: 12px 14px; }
   .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
   .stat .v { font-family: var(--mono); font-size: 17px; font-weight: 600; margin-top: 4px; }
   .stat .v small { font-size: 12px; font-weight: 400; color: var(--ink-faint); }
 
-  .maintenance { display: none; margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); background: #f4f8f3; border: 1px solid #d6e5d4; border-radius: 7px; padding: 12px 14px; }
+  .maintenance { display: none; margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); background: var(--ok-soft); border: 1px solid var(--ok-line); border-radius: 7px; padding: 12px 14px; }
   .maintenance.show { display: block; }
   .maintenance b { font-family: var(--mono); color: var(--ok); font-weight: 600; }
+
+  .daycomp { display: none; margin-top: 22px; }
+  .daycomp.show { display: block; }
+  .daycomp .lede { font-size: 13px; color: var(--ink-faint); margin: -6px 0 4px; }
+  .dc-block { margin-top: 20px; }
+  .dc-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .dc-title b { font-family: var(--mono); font-weight: 600; }
+  .dc-bar { display: flex; gap: 5px; height: 44px; transition: width 0.35s ease; }
+  .dc-seg {
+    display: flex; align-items: center; justify-content: center; min-width: 0;
+    font-family: var(--mono); font-size: 12px; white-space: nowrap; overflow: hidden;
+    border-radius: 6px; border: 1px solid; padding: 0 4px;
+  }
+  .dc-seg.other { background: var(--dc-other-bg); border-color: var(--line-strong); color: var(--ink-soft); }
+  .dc-seg.base { background: var(--baseline-soft); border-color: var(--baseline); color: var(--ink); }
+  .dc-seg.netc { background: var(--net-soft); border-color: var(--net); color: var(--net); }
+  .dc-note { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); margin-top: 7px; text-align: right; }
+  @media (prefers-reduced-motion: reduce) { .dc-bar { transition: none; } }
 
   footer { margin-top: 26px; font-size: 12px; line-height: 1.7; color: var(--ink-faint); max-width: 72ch; }
   footer a { color: var(--baseline); }
@@ -153,9 +217,12 @@
       <h1>Walking calorie ledger</h1>
       <p>Enter your weight, the slope, and any two of distance, time, or speed — the third fills itself in. Unlike most calculators, this one shows what you can actually add to your TDEE.</p>
     </div>
-    <div class="units" role="group" aria-label="Unit system">
-      <button type="button" id="uImp" aria-pressed="true">lb · mi · mph</button>
-      <button type="button" id="uMet" aria-pressed="false">kg · km · km/h</button>
+    <div class="controls">
+      <div class="units" role="group" aria-label="Unit system">
+        <button type="button" id="uImp" aria-pressed="true">lb · mi · mph</button>
+        <button type="button" id="uMet" aria-pressed="false">kg · km · km/h</button>
+      </div>
+      <button type="button" class="theme-btn" id="themeBtn"></button>
     </div>
   </header>
 
@@ -249,6 +316,28 @@
     </section>
   </div>
 
+  <section class="panel daycomp" id="daycomp" aria-labelledby="daycomp-h">
+    <h2 id="daycomp-h">Two versions of the same day</h2>
+    <p class="lede">Computed calorie expenditure and extrapolated daily maintenance needs, drawn to the same scale.</p>
+    <div class="dc-block">
+      <div class="dc-title">Sedentary day — <b id="dcSedTotal">—</b> kcal</div>
+      <div class="dc-bar" id="dcSedBar" aria-hidden="true">
+        <div class="dc-seg other" id="dcSedOther"><span></span></div>
+        <div class="dc-seg base" id="dcSedBase"><span></span></div>
+      </div>
+      <div class="dc-note" id="dcSedNote"></div>
+    </div>
+    <div class="dc-block">
+      <div class="dc-title" id="dcWalkTitle">Treadmill day — <b id="dcWalkTotal">—</b> kcal</div>
+      <div class="dc-bar" aria-hidden="true">
+        <div class="dc-seg other" id="dcWalkOther"><span></span></div>
+        <div class="dc-seg base" id="dcWalkBase"><span></span></div>
+        <div class="dc-seg netc" id="dcWalkNet"><span></span></div>
+      </div>
+      <div class="dc-note" id="dcWalkNote"></div>
+    </div>
+  </section>
+
   <footer>
     For grades −5% to +5%, calories follow the cubic equations ShapeSense derived from Margaria et&nbsp;al.'s "Energy Cost of Running" data (the same equations behind Omni's walking calculator); for +6% to +15%, the ACSM walking metabolic equation. Net burn subtracts the resting calories you'd have spent anyway during the walk — your TDEE&nbsp;÷&nbsp;24 per hour if provided, otherwise a 1-MET resting rate. Gross numbers here should match Omni; the net number is the one your food log actually wants. The hands-on-desk discount trims only the activity portion (gross minus baseline), since supporting weight on a desk reduces the work of walking but can't reduce resting metabolism. Validated speed range: 0.62–4.66&nbsp;mph (1–7.5&nbsp;km/h).
   </footer>
@@ -314,7 +403,11 @@
     baseVal: $("baseVal"), grossVal: $("grossVal"), netHr: $("netHr"),
     distStat: $("distStat"), stepsStat: $("stepsStat"), heroSub: $("heroSub"),
     segBase: $("segBase"), segNet: $("segNet"), maint: $("maint"),
-    notice: $("speedNotice"), uImp: $("uImp"), uMet: $("uMet")
+    notice: $("speedNotice"), uImp: $("uImp"), uMet: $("uMet"),
+    daycomp: $("daycomp"), dcSedTotal: $("dcSedTotal"), dcSedBar: $("dcSedBar"),
+    dcSedOther: $("dcSedOther"), dcSedBase: $("dcSedBase"), dcSedNote: $("dcSedNote"),
+    dcWalkTitle: $("dcWalkTitle"), dcWalkOther: $("dcWalkOther"), dcWalkBase: $("dcWalkBase"),
+    dcWalkNet: $("dcWalkNet"), dcWalkNote: $("dcWalkNote")
   };
 
   const num = (input) => {
@@ -357,7 +450,7 @@
     deriveTrio();
     const ready = S.wKg > 0 && S.speedKph !== null && S.speedKph > 0 && S.timeH !== null && S.timeH > 0;
     el.results.classList.toggle("ready", !!ready);
-    if (!ready) { el.notice.classList.remove("show"); return; }
+    if (!ready) { el.notice.classList.remove("show"); el.daycomp.classList.remove("show"); return; }
 
     // speed validity note
     if (S.speedKph < 1 || S.speedKph > 7.5) {
@@ -398,6 +491,36 @@
       el.maint.classList.add("show");
     } else {
       el.maint.classList.remove("show");
+    }
+
+    // ---- day comparison (needs a TDEE to split the day) ----
+    const otherKcal = S.tdee && S.tdee > 0 ? S.tdee - baseline : 0;
+    if (S.tdee && S.tdee > 0 && S.timeH < 24 && otherKcal > 0) {
+      const scale = S.tdee + net; // treadmill day sets the full width
+      const walkHrs = +S.timeH.toFixed(1);
+      const otherHrs = +(24 - S.timeH).toFixed(1);
+
+      el.dcSedTotal.textContent = fmt(S.tdee);
+      el.dcSedBar.style.width = (S.tdee / scale) * 100 + "%";
+      el.dcSedOther.style.flexGrow = otherKcal;
+      el.dcSedBase.style.flexGrow = baseline;
+      el.dcSedOther.firstElementChild.textContent = `Other ${otherHrs} hours · ${fmt(otherKcal)} kcal`;
+      el.dcSedBase.firstElementChild.textContent = fmt(baseline);
+      el.dcSedNote.textContent = `same ${walkHrs} desk hours, sitting`;
+
+      el.dcWalkTitle.innerHTML = `Treadmill day at ${spd} — <b>~${fmt(S.tdee + net)}</b> kcal`;
+      el.dcWalkOther.style.flexGrow = otherKcal;
+      el.dcWalkBase.style.flexGrow = baseline;
+      el.dcWalkNet.style.flexGrow = Math.max(net, 1);
+      el.dcWalkOther.firstElementChild.textContent = `Other ${otherHrs} hours · ${fmt(otherKcal)} kcal`;
+      el.dcWalkBase.firstElementChild.textContent = fmt(baseline);
+      el.dcWalkNet.firstElementChild.textContent = `+${fmt(net)} new`;
+      const trim = S.hands > 0 ? ` after −${Math.round(S.hands * 100)}% hands trim` : "";
+      el.dcWalkNote.textContent = `walk = ~${fmt(gross)} gross: ${fmt(baseline)} already counted + ${fmt(net)} new${trim}`;
+
+      el.daycomp.classList.add("show");
+    } else {
+      el.daycomp.classList.remove("show");
     }
   }
 
@@ -464,6 +587,20 @@
   }
   el.uImp.addEventListener("click", () => setUnits(true));
   el.uMet.addEventListener("click", () => setUnits(false));
+
+  // ---- theme (dark by default; "light" is the stored override) ----
+  const themeBtn = $("themeBtn");
+  const themeLabel = () => {
+    themeBtn.textContent = document.documentElement.dataset.theme === "light" ? "☾ dark mode" : "☀ light mode";
+  };
+  themeBtn.addEventListener("click", () => {
+    const toLight = document.documentElement.dataset.theme !== "light";
+    if (toLight) document.documentElement.dataset.theme = "light";
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem("wcl-theme", toLight ? "light" : "dark"); } catch (e) {}
+    themeLabel();
+  });
+  themeLabel();
 
   compute();
 })();
