@@ -196,6 +196,7 @@
   .dc-bar { display: flex; gap: 5px; height: 44px; transition: width 0.35s ease; }
   .dc-seg {
     display: flex; align-items: center; justify-content: center; min-width: 0;
+    flex: 0 1 0%; /* basis 0 so flex-grow splits width purely by kcal share */
     font-family: var(--mono); font-size: 12px; white-space: nowrap; overflow: hidden;
     border-radius: 6px; border: 1px solid; padding: 0 4px;
   }
