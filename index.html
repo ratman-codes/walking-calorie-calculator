@@ -10,7 +10,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     /* dark theme (default) */
@@ -38,8 +38,7 @@
     --dc-other-bg: #333b46;
     --net-stripe: rgba(242, 102, 43, 0.14);
     --radius: 10px;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
-    --sans: "Space Grotesk", system-ui, sans-serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
   }
   :root[data-theme="light"] {
     color-scheme: light;
@@ -83,22 +82,22 @@
 
   header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
   .masthead .eyebrow {
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    font-family: var(--sans); font-size: 12px; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--net); font-weight: 600;
   }
   .masthead h1 { font-size: clamp(26px, 4.5vw, 36px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
-  .masthead p { color: var(--ink-soft); margin-top: 8px; font-size: 15px; max-width: 46ch; }
+  .masthead p { color: var(--ink-soft); margin-top: 8px; font-size: 15.5px; line-height: 1.55; max-width: 52ch; }
 
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .units { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; background: var(--surface); }
   .units button {
-    font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
     padding: 8px 16px; border: none; background: transparent; color: var(--ink-soft); cursor: pointer;
   }
   .units button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .units button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
   .theme-btn {
-    font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
     padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 999px;
     background: var(--surface); color: var(--ink-soft); cursor: pointer;
   }
@@ -109,43 +108,45 @@
 
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
   .panel h2 {
-    font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0.07em;
     text-transform: uppercase; color: var(--ink-faint); margin-bottom: 16px;
   }
 
   .field { margin-bottom: 16px; }
   .field:last-child { margin-bottom: 0; }
   .field-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-  label { font-size: 14px; font-weight: 500; }
-  .unit-tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  label { font-size: 14.5px; font-weight: 500; }
+  .unit-tag { font-family: var(--sans); font-size: 12px; color: var(--ink-faint); }
   .chip {
-    font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
     text-transform: uppercase; color: var(--baseline); background: var(--baseline-soft);
     border-radius: 4px; padding: 2px 7px; visibility: hidden;
   }
   .field.derived .chip { visibility: visible; }
   input[type="number"] {
-    width: 100%; font-family: var(--mono); font-size: 17px; font-weight: 500;
+    width: 100%; font-family: var(--sans); font-size: 17px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: var(--ink); background: var(--input-bg); border: 1px solid var(--line-strong);
     border-radius: 7px; padding: 10px 12px; appearance: textfield;
   }
   input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   input[type="number"]:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
   select {
-    width: 100%; font-family: var(--mono); font-size: 17px; font-weight: 500;
+    width: 100%; font-family: var(--sans); font-size: 16px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: var(--ink); background: var(--input-bg); border: 1px solid var(--line-strong);
     border-radius: 7px; padding: 10px 12px; cursor: pointer;
   }
   select:focus-visible { outline: 2px solid var(--net); outline-offset: -1px; border-color: var(--net); }
   .field.derived input { border-style: dashed; color: var(--baseline); background: var(--derived-bg); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .hint { font-size: 12px; color: var(--ink-faint); margin-top: 6px; line-height: 1.45; }
+  .hint { font-size: 13px; color: var(--ink-faint); margin-top: 6px; line-height: 1.5; }
   .divider { border: none; border-top: 1px dashed var(--line); margin: 20px 0; }
-  .optional-tag { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+  .optional-tag { font-family: var(--sans); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.05em; text-transform: uppercase; }
 
   .handset { display: flex; border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; background: var(--surface); }
   .handset button {
-    flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500;
+    flex: 1; font-family: var(--sans); font-size: 13px; font-weight: 500;
     padding: 9px 4px; border: none; border-right: 1px solid var(--line);
     background: transparent; color: var(--ink-soft); cursor: pointer;
   }
@@ -154,21 +155,21 @@
   .handset button:focus-visible { outline: 2px solid var(--net); outline-offset: -2px; }
 
   .notice {
-    display: none; font-size: 13px; line-height: 1.5; color: var(--warn);
+    display: none; font-size: 14px; line-height: 1.55; color: var(--warn);
     background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 7px;
     padding: 10px 12px; margin-top: 14px;
   }
   .notice.show { display: block; }
 
-  .results .placeholder { color: var(--ink-faint); font-size: 14px; line-height: 1.6; padding: 8px 0 4px; }
+  .results .placeholder { color: var(--ink-faint); font-size: 15px; line-height: 1.6; padding: 8px 0 4px; }
   .results-body { display: none; }
   .results.ready .results-body { display: block; }
   .results.ready .placeholder { display: none; }
 
   .hero-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .hero-num .value { font-family: var(--mono); font-size: clamp(40px, 7vw, 54px); font-weight: 600; color: var(--net); letter-spacing: -0.03em; line-height: 1; }
-  .hero-num .label { font-size: 14px; color: var(--ink-soft); font-weight: 500; }
-  .hero-sub { font-size: 13px; color: var(--ink-faint); margin-top: 6px; }
+  .hero-num .value { font-family: var(--sans); font-size: clamp(40px, 7vw, 54px); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--net); letter-spacing: -0.02em; line-height: 1; }
+  .hero-num .label { font-size: 15px; color: var(--ink-soft); font-weight: 500; }
+  .hero-sub { font-size: 14px; color: var(--ink-faint); margin-top: 6px; line-height: 1.5; }
 
   .ledger { margin: 22px 0 8px; }
   .ledger-bar { display: flex; height: 40px; border-radius: 7px; overflow: hidden; border: 1px solid var(--line-strong); }
@@ -177,42 +178,43 @@
   .seg-net::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--net-stripe) 6px 8px); }
   @media (prefers-reduced-motion: reduce) { .seg-base, .seg-net { transition: none; } }
   .ledger-legend { display: flex; justify-content: space-between; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
-  .ledger-legend .item { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+  .ledger-legend .item { font-size: 13.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
   .swatch { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--line-strong); flex: none; }
   .swatch.base { background: var(--baseline-soft); }
   .swatch.netc { background: var(--net-soft); }
-  .ledger-legend b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+  .ledger-legend b { font-family: var(--sans); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin-top: 18px; }
   .stat { background: var(--surface); padding: 12px 14px; }
-  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
-  .stat .v { font-family: var(--mono); font-size: 17px; font-weight: 600; margin-top: 4px; }
-  .stat .v small { font-size: 12px; font-weight: 400; color: var(--ink-faint); }
+  .stat .k { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+  .stat .v { font-family: var(--sans); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .stat .v small { font-size: 12.5px; font-weight: 400; color: var(--ink-faint); }
 
-  .maintenance { display: none; margin-top: 16px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); background: var(--ok-soft); border: 1px solid var(--ok-line); border-radius: 7px; padding: 12px 14px; }
+  .maintenance { display: none; margin-top: 16px; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); background: var(--ok-soft); border: 1px solid var(--ok-line); border-radius: 7px; padding: 12px 14px; }
   .maintenance.show { display: block; }
-  .maintenance b { font-family: var(--mono); color: var(--ok); font-weight: 600; }
+  .maintenance b { font-family: var(--sans); color: var(--ok); font-weight: 600; }
 
   .daycomp { display: none; margin-top: 22px; }
   .daycomp.show { display: block; }
-  .daycomp .lede { font-size: 13px; color: var(--ink-faint); margin: -6px 0 4px; }
+  .daycomp .lede { font-size: 14px; color: var(--ink-faint); margin: -6px 0 4px; }
   .dc-block { margin-top: 20px; }
-  .dc-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-  .dc-title b { font-family: var(--mono); font-weight: 600; }
+  .dc-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .dc-title b { font-family: var(--sans); font-weight: 600; font-variant-numeric: tabular-nums; }
   .dc-bar { display: flex; gap: 5px; height: 44px; transition: width 0.35s ease; }
   .dc-seg {
     display: flex; align-items: center; justify-content: center; min-width: 0;
     flex: 0 1 0%; /* basis 0 so flex-grow splits width purely by kcal share */
-    font-family: var(--mono); font-size: 12px; white-space: nowrap; overflow: hidden;
+    font-family: var(--sans); font-size: 13px; font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden;
     border-radius: 6px; border: 1px solid; padding: 0 4px;
   }
   .dc-seg.other { background: var(--dc-other-bg); border-color: var(--line-strong); color: var(--ink-soft); }
   .dc-seg.base { background: var(--baseline-soft); border-color: var(--baseline); color: var(--ink); }
   .dc-seg.netc { background: var(--net-soft); border-color: var(--net); color: var(--net); }
-  .dc-note { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); margin-top: 7px; text-align: right; }
+  .dc-note { font-family: var(--sans); font-size: 12.5px; color: var(--ink-faint); margin-top: 7px; text-align: right; }
   @media (prefers-reduced-motion: reduce) { .dc-bar { transition: none; } }
 
-  footer { margin-top: 26px; font-size: 12px; line-height: 1.7; color: var(--ink-faint); max-width: 72ch; }
+  footer { margin-top: 26px; font-size: 13px; line-height: 1.7; color: var(--ink-faint); max-width: 78ch; }
   footer a { color: var(--baseline); }
 </style>
 </head>
